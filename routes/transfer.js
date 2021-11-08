@@ -14,7 +14,7 @@ const Db = new DatabaseInst().getConnection();
 const verifyUserAuth = (req, res, next) => {
   const token = req.headers["x-access-token"];
   if (!token) {
-    console.log("User is not Authenticated");
+    res.send({Message: "User is not Authenticated", status: 0});
   } else {
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
@@ -40,8 +40,8 @@ router.get("/get/notifications/:hospitalid", verifyUserAuth, (req, res) => {
 router.get("/get/History/:Hospital_id", verifyUserAuth, (req, res) => {
   const Hospital_id = req.params.Hospital_id;
   const Query =
-    "SELECT transfers.*,transfer_external.* FROM transfers inner join transfer_external WHERE transfers.Processed=? AND transfers.Reciever_id=?";
-  Db.query(Query, [`true`, Hospital_id], (err, results) => {
+    "SELECT transfers.*,transfer_external.* FROM transfers inner join transfer_external WHERE transfers.Processed=? or transfers.Processed=? AND transfers.Reciever_id=?";
+  Db.query(Query, [`true`, `forgotten`, Hospital_id], (err, results) => {
     if (err) console.log(err);
     res.send(results);
   });
@@ -51,7 +51,7 @@ router.get("/get/onWait/:Hospital_id", verifyUserAuth, (req, res) => {
   const Hospital_id = req.params.Hospital_id;
   const onWaitQuery =
     "SELECT transfers.*, transfer_external.* FROM transfers INNER JOIN transfer_external where transfers.Processed=? AND transfers.Reciever_id=?";
-  Db.query(onWaitQuery, ["false", Hospital_id], (err, result) => {
+  Db.query(onWaitQuery, ["False", Hospital_id], (err, result) => {
     if (err) console.log(err);
     res.send(result);
   });
@@ -72,8 +72,8 @@ router.get(
   }
 );
 
-router.post("/post/formData/:juniorId", verifyUserAuth, (req, res) => {
-  const JuniorId = req.params.juniorId;
+router.post("/post/formData/:Master_id", (req, res) => {
+  const Master_id = req.params.Master_id;
   const UserId = uuidv4();
   const SaveQuery = "INSERT INTO transfers VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
   Db.query(
@@ -81,16 +81,16 @@ router.post("/post/formData/:juniorId", verifyUserAuth, (req, res) => {
     [
       UserId,
       req.body.Hospital_id,
-      JuniorId,
+      req.body.Recipient,
       req.body.Assurance,
       req.body.CareProvider,
-      "true",
+      "False",
       req.body.NB,
       DateTime,
     ],
     (err) => {
       if (err) {
-        res.send({ Message: "Trasfer Main Falied", status: 0 });
+        res.send({ Message: "Trasfer Main Falied", status: 0, err: err });
       } else {
         // get the current Transfer id
         const TransferId =
@@ -174,5 +174,33 @@ router.post("/post/formData/:juniorId", verifyUserAuth, (req, res) => {
     }
   );
 });
+
+router.put("/put/transferSignal/accept/:transferId", (req, res) => {
+  const Transfer_id = req.params.transferId;
+  const query = "UPDATE transfers SET Processed='true' WHERE Transfer_id=?";
+  Db.query(query, [Transfer_id], (err, result) => {
+    if(err) return err;
+    res.json(result);
+  });
+})
+
+router.put("/put/transferSignal/reject/:transferId", (req, res) => {
+  const Transfer_id = req.params.transferId;
+  const query = "UPDATE transfers SET Processed='rejected' WHERE Transfer_id=?";
+  Db.query(query, [Transfer_id], (err, result) => {
+    if(err) return err;
+    res.json(result);
+  });
+})
+
+router.put("/put/transferSignal/forget/:transferId", (req, res) => {
+  const Transfer_id = req.params.transferId;
+  const query = "UPDATE transfers SET Processed='forgotten' WHERE Transfer_id=?";
+  Db.query(query, [Transfer_id], (err, result) => {
+    if(err) return err;
+    res.json(result);
+  });
+})
+
 
 module.exports = router;

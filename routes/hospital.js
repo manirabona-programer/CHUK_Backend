@@ -83,9 +83,10 @@ router.get("/get/detail/:HospitalId", verifyUserAuth, (req, res) => {
   });
 });
 
-router.get("/get/hospitalIds", verifyUserAuth, (req, res) => {
-  const MasterQuery = "SELECT * FROM hospitals";
-  Db.query(MasterQuery, (err, results) => {
+router.get("/get/hospitalIds/:Hospital_id", verifyUserAuth, (req, res) => {
+  const H = req.params.Hospital_id;
+  const MasterQuery = "SELECT * FROM hospitals WHERE Hospital_id != ?";
+  Db.query(MasterQuery, [H], (err, results) => {
     if (err) console.log(err);
     res.send(results);
   });
