@@ -8,7 +8,15 @@ class Database {
       password: "",
       database: "chuk_transfer",
     });
-    return Db;
+
+    // Db.connect(function(error){
+    //   if(!!error) {
+    //     console.log(error);
+    //   } else {
+    //     console.log('Connected..!');
+    //     return Db;
+    //   }
+    // });
   }
 }
 
